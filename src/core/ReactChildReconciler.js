@@ -20,6 +20,26 @@ var shouldUpdateReactComponent = require('shouldUpdateReactComponent');
 var traverseAllChildren = require('traverseAllChildren');
 var warning = require('warning');
 
+function instantiateChildIntoContext(traverseContext, child, name) {
+  if (child == null) {
+    return;
+  }
+  if (traverseContext[name] !== undefined) {
+    if (__DEV__) {
+      warning(
+        true,
+        'mountChildren(...): Encountered two children with the same key, ' +
+        '`%s`. Child keys must be unique; when two children share a key, only ' +
+        'the first child will be used.',
+        name
+      );
+    }
+    return;
+  }
+
+  traverseContext[name] = instantiateReactComponent(child);
+}
+
 /**
  * ReactChildReconciler provides helpers for initializing or updating a set of
  * children. Its output is suitable for passing it onto ReactMultiChild which
@@ -41,28 +61,8 @@ var ReactChildReconciler = {
     }
     var children = {};
     // Inlined for performance, see `flattenChildren`.
-    traverseAllChildren(nestedChildNodes, ReactChildReconciler.instantiateChildIntoContext, children);
+    traverseAllChildren(nestedChildNodes, instantiateChildIntoContext, children);
     return children;
-  },
-
-  instantiateChildIntoContext: function (traverseContext, child, name) {
-    if (child == null) {
-      return;
-    }
-    if (traverseContext[name] !== undefined) {
-      if (__DEV__) {
-        warning(
-          true,
-          'mountChildren(...): Encountered two children with the same key, ' +
-          '`%s`. Child keys must be unique; when two children share a key, only ' +
-          'the first child will be used.',
-          name
-        );
-      }
-      return;
-    }
-
-    traverseContext[name] = instantiateReactComponent(child);
   },
 
   /**
