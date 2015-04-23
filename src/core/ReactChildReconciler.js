@@ -41,26 +41,28 @@ var ReactChildReconciler = {
     }
     var children = {};
     // Inlined for performance, see `flattenChildren`.
-    traverseAllChildren(nestedChildNodes, function mountChild(traverseContext, child, name) {
-      if (child == null) {
-        return;
-      }
-      if (traverseContext[name] !== undefined) {
-        if (__DEV__) {
-          warning(
-            true,
-            'mountChildren(...): Encountered two children with the same key, ' +
-            '`%s`. Child keys must be unique; when two children share a key, only ' +
-            'the first child will be used.',
-            name
-          );
-        }
-        return;
-      }
-
-      traverseContext[name] = instantiateReactComponent(child);
-    }, children);
+    traverseAllChildren(nestedChildNodes, ReactChildReconciler.instantiateChildIntoContext, children);
     return children;
+  },
+
+  instantiateChildIntoContext: function (traverseContext, child, name) {
+    if (child == null) {
+      return;
+    }
+    if (traverseContext[name] !== undefined) {
+      if (__DEV__) {
+        warning(
+          true,
+          'mountChildren(...): Encountered two children with the same key, ' +
+          '`%s`. Child keys must be unique; when two children share a key, only ' +
+          'the first child will be used.',
+          name
+        );
+      }
+      return;
+    }
+
+    traverseContext[name] = instantiateReactComponent(child);
   },
 
   /**
