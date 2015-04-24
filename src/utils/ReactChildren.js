@@ -122,7 +122,7 @@ function mapChildren(children, func, context) {
   var traverseContext = MapBookKeeping.getPooled(mapResult, func, context);
   traverseAllChildren(children, mapSingleChildIntoContext, traverseContext);
   MapBookKeeping.release(traverseContext);
-  return ReactFragment.create(mapResult);
+  return mapResult;
 }
 
 function forEachSingleChildDummy(traverseContext, child, name, i) {
@@ -142,7 +142,10 @@ function countChildren(children, context) {
 
 var ReactChildren = {
   forEach: forEachChildren,
-  map: mapChildren,
+  map: function (children, func, context) {
+    return ReactFragment.create(mapChildren(children, func, context));
+  },
+  mapObject: mapChildren,
   count: countChildren
 };
 

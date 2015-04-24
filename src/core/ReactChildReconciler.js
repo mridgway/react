@@ -17,28 +17,7 @@ var ReactReconciler = require('ReactReconciler');
 var flattenChildren = require('flattenChildren');
 var instantiateReactComponent = require('instantiateReactComponent');
 var shouldUpdateReactComponent = require('shouldUpdateReactComponent');
-var traverseAllChildren = require('traverseAllChildren');
-var warning = require('warning');
-
-function instantiateChildIntoContext(traverseContext, child, name) {
-  if (child == null) {
-    return;
-  }
-  if (traverseContext[name] !== undefined) {
-    if (__DEV__) {
-      warning(
-        true,
-        'mountChildren(...): Encountered two children with the same key, ' +
-        '`%s`. Child keys must be unique; when two children share a key, only ' +
-        'the first child will be used.',
-        name
-      );
-    }
-    return;
-  }
-
-  traverseContext[name] = instantiateReactComponent(child);
-}
+var ReactChildren = require('ReactChildren');
 
 /**
  * ReactChildReconciler provides helpers for initializing or updating a set of
@@ -56,13 +35,7 @@ var ReactChildReconciler = {
    * @internal
    */
   instantiateChildren: function (nestedChildNodes, transaction, context) {
-    if (nestedChildNodes == null) {
-      return nestedChildNodes;
-    }
-    var children = {};
-    // Inlined for performance, see `flattenChildren`.
-    traverseAllChildren(nestedChildNodes, instantiateChildIntoContext, children);
-    return children;
+    return ReactChildren.mapObject(nestedChildNodes, instantiateReactComponent);
   },
 
   /**
