@@ -56,7 +56,7 @@ var ReactCSSTransitionGroup = React.createClass({
   render: function() {
     return (
       ReactTransitionGroup(
-        assign({}, this.props, {childFactory: this._wrapChild})
+        assign({}, this.props, {childFactory: this._wrapChild.bind(this)})
       )
     );
   }
