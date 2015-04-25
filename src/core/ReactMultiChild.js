@@ -18,6 +18,9 @@ var ReactMultiChildUpdateTypes = require('ReactMultiChildUpdateTypes');
 var flattenChildren = require('flattenChildren');
 var instantiateReactComponent = require('instantiateReactComponent');
 var shouldUpdateReactComponent = require('shouldUpdateReactComponent');
+var traverseAllChildren = require('traverseAllChildren');
+var ReactTextComponent = require('ReactTextComponent');
+var warning = require('warning');
 
 /**
  * Updating children of a component may trigger recursive updates. The depth is
@@ -179,29 +182,50 @@ var ReactMultiChild = {
      * @internal
      */
     mountChildren: function(nestedChildren, transaction) {
-      var children = flattenChildren(nestedChildren);
+      var self = this;
+      var children = {};
       var mountImages = [];
       var index = 0;
       this._renderedChildren = children;
-      for (var name in children) {
-        var child = children[name];
-        if (children.hasOwnProperty(name)) {
-          // The rendered children must be turned into instances as they're
-          // mounted.
-          var childInstance = instantiateReactComponent(child, null);
-          children[name] = childInstance;
-          // Inlined for performance, see `ReactInstanceHandles.createReactID`.
-          var rootID = this._rootNodeID + name;
-          var mountImage = childInstance.mountComponent(
-            rootID,
-            transaction,
-            this._mountDepth + 1
-          );
-          childInstance._mountIndex = index;
-          mountImages.push(mountImage);
-          index++;
+      traverseAllChildren(nestedChildren, function mountChild(traverseContext, child, name) {
+        if (child == null) {
+          return;
         }
-      }
+        if (children[name] !== undefined) {
+          if (__DEV__) {
+            warning(
+              true,
+              'mountChildren(...): Encountered two children with the same key, ' +
+              '`%s`. Child keys must be unique; when two children share a key, only ' +
+              'the first child will be used.',
+              name
+            );
+          }
+          return;
+        }
+
+        var type = typeof child;
+        if (type === 'string') {
+          child = ReactTextComponent(child);
+        } else if (type === 'number') {
+          child = ReactTextComponent('' + child);
+        }
+
+        // The rendered children must be turned into instances as they're
+        // mounted.
+        var childInstance = instantiateReactComponent(child, null);
+        children[name] = childInstance;
+        // Inlined for performance, see `ReactInstanceHandles.createReactID`.
+        var rootID = self._rootNodeID + name;
+        var mountImage = childInstance.mountComponent(
+          rootID,
+          transaction,
+          self._mountDepth + 1
+        );
+        childInstance._mountIndex = index;
+        mountImages.push(mountImage);
+        index++;
+      }, children);
       return mountImages;
     },
 
