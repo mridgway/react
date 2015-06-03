@@ -12,8 +12,9 @@
 
 'use strict';
 
-// Defeat circular references by requiring this directly.
-var ReactClass = require('ReactClass');
+var assign = require('Object.assign');
+var ReactClassMixin = require('ReactClassMixin');
+var ReactBrowserComponentMixin = require('ReactBrowserComponentMixin');
 var ReactElement = require('ReactElement');
 
 var invariant = require('invariant');
@@ -32,25 +33,35 @@ var invariant = require('invariant');
 function createFullPageComponent(tag) {
   var elementFactory = ReactElement.createFactory(tag);
 
-  var FullPageComponent = ReactClass.createClass({
-    tagName: tag.toUpperCase(),
-    displayName: 'ReactFullPageComponent' + tag,
+  function FullPageComponent(props, context) {
+    this.props = props;
+    this.context = context;
+  }
+  FullPageComponent.displayName = 'ReactFullPageComponent' + tag;
 
-    componentWillUnmount: function() {
-      invariant(
-        false,
-        '%s tried to unmount. Because of cross-browser quirks it is ' +
-        'impossible to unmount some top-level components (eg <html>, <head>, ' +
-        'and <body>) reliably and efficiently. To fix this, have a single ' +
-        'top-level component that never unmounts render these elements.',
-        this.constructor.displayName
-      );
-    },
+  assign(
+    FullPageComponent.prototype,
+    ReactClassMixin,
+    ReactBrowserComponentMixin,
+    {
+      tagName: tag.toUpperCase(),
 
-    render: function() {
-      return elementFactory(this.props);
+      componentWillUnmount: function() {
+        invariant(
+          false,
+          '%s tried to unmount. Because of cross-browser quirks it is ' +
+          'impossible to unmount some top-level components (eg <html>, <head>, ' +
+          'and <body>) reliably and efficiently. To fix this, have a single ' +
+          'top-level component that never unmounts render these elements.',
+          this.constructor.displayName
+        );
+      },
+
+      render: function() {
+        return elementFactory(this.props);
+      }
     }
-  });
+  );
 
   return FullPageComponent;
 }

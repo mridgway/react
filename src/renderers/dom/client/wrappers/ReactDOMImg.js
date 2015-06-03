@@ -11,10 +11,11 @@
 
 'use strict';
 
+var assign = require('Object.assign');
 var EventConstants = require('EventConstants');
 var LocalEventTrapMixin = require('LocalEventTrapMixin');
 var ReactBrowserComponentMixin = require('ReactBrowserComponentMixin');
-var ReactClass = require('ReactClass');
+var ReactClassMixin = require('ReactClassMixin');
 var ReactElement = require('ReactElement');
 
 var img = ReactElement.createFactory('img');
@@ -25,20 +26,28 @@ var img = ReactElement.createFactory('img');
  * to accomplish this, but the most reliable is to make <img> a composite
  * component and use `componentDidMount` to attach the event handlers.
  */
-var ReactDOMImg = ReactClass.createClass({
-  displayName: 'ReactDOMImg',
-  tagName: 'IMG',
+function ReactDOMImg(props, context) {
+  this.props = props;
+  this.context = context;
+}
+ReactDOMImg.displayName = 'ReactDOMImg';
 
-  mixins: [ReactBrowserComponentMixin, LocalEventTrapMixin],
+assign(
+  ReactDOMImg.prototype,
+  LocalEventTrapMixin,
+  ReactBrowserComponentMixin,
+  ReactClassMixin,
+  {
+    tagName: 'IMG',
+    render: function() {
+      return img(this.props);
+    },
 
-  render: function() {
-    return img(this.props);
-  },
-
-  componentDidMount: function() {
-    this.trapBubbledEvent(EventConstants.topLevelTypes.topLoad, 'load');
-    this.trapBubbledEvent(EventConstants.topLevelTypes.topError, 'error');
+    componentDidMount: function() {
+      this.trapBubbledEvent(EventConstants.topLevelTypes.topLoad, 'load');
+      this.trapBubbledEvent(EventConstants.topLevelTypes.topError, 'error');
+    }
   }
-});
+);
 
 module.exports = ReactDOMImg;

@@ -11,10 +11,11 @@
 
 'use strict';
 
+var ReactComponent = require('ReactComponent');
 var AutoFocusMixin = require('AutoFocusMixin');
 var LinkedValueUtils = require('LinkedValueUtils');
 var ReactBrowserComponentMixin = require('ReactBrowserComponentMixin');
-var ReactClass = require('ReactClass');
+var ReactClassMixin = require('ReactClassMixin');
 var ReactElement = require('ReactElement');
 var ReactUpdates = require('ReactUpdates');
 var ReactPropTypes = require('ReactPropTypes');
@@ -114,92 +115,105 @@ function updateOptions(component, propValue) {
  * If `defaultValue` is provided, any options with the supplied values will be
  * selected.
  */
-var ReactDOMSelect = ReactClass.createClass({
-  displayName: 'ReactDOMSelect',
-  tagName: 'SELECT',
-
-  mixins: [AutoFocusMixin, LinkedValueUtils.Mixin, ReactBrowserComponentMixin],
-
-  statics: {
-    valueContextKey: valueContextKey
-  },
-
-  propTypes: {
+function ReactDOMSelect(props, context) {
+  this.props = props;
+  this.context = context;
+  // Pass down initial value so initial generated markup has correct
+  // `selected` attributes
+  var value = LinkedValueUtils.getValue(this.props);
+  if (value != null) {
+    this.state = {initialValue: value};
+  } else {
+    this.state = {initialValue: this.props.defaultValue};
+  }
+}
+ReactDOMSelect.displayName = 'ReactDOMSelect';
+ReactDOMSelect.propTypes = assign(
+  {
     defaultValue: selectValueType,
     value: selectValueType
   },
+  LinkedValueUtils.Mixin.propTypes
+);
+ReactDOMSelect.childContextTypes = (function() {
+  var obj = {};
+  obj[valueContextKey] = ReactPropTypes.any;
+  return obj;
+})();
+ReactDOMSelect.valueContextKey = valueContextKey;
 
-  getInitialState: function() {
-    // Pass down initial value so initial generated markup has correct
-    // `selected` attributes
-    var value = LinkedValueUtils.getValue(this.props);
-    if (value != null) {
-      return {initialValue: value};
-    } else {
-      return {initialValue: this.props.defaultValue};
-    }
+assign(
+  ReactDOMSelect.prototype,
+  {
+    setState: ReactComponent.prototype.setState,
+    forceUpdate: ReactComponent.prototype.forceUpdate
   },
-
-  childContextTypes: (function() {
-    var obj = {};
-    obj[valueContextKey] = ReactPropTypes.any;
-    return obj;
-  })(),
-
-  getChildContext: function() {
-    var obj = {};
-    obj[valueContextKey] = this.state.initialValue;
-    return obj;
+  AutoFocusMixin,
+  {
+    getValue: LinkedValueUtils.Mixin.getValue,
+    getChecked: LinkedValueUtils.Mixin.getChecked,
+    getOnChange: LinkedValueUtils.Mixin.getOnChange
   },
+  ReactBrowserComponentMixin,
+  ReactClassMixin,
+  {
+    tagName: 'SELECT',
 
-  render: function() {
-    // Clone `this.props` so we don't mutate the input.
-    var props = assign({}, this.props);
+    getChildContext: function() {
+      var obj = {};
+      obj[valueContextKey] = this.state.initialValue;
+      return obj;
+    },
 
-    props.onChange = this._handleChange;
-    props.value = null;
+    render: function() {
+      // Clone `this.props` so we don't mutate the input.
+      var props = assign({}, this.props);
 
-    return select(props, this.props.children);
-  },
+      props.onChange = this._handleChange.bind(this);
+      props.value = null;
 
-  componentWillMount: function() {
-    this._pendingUpdate = false;
-  },
+      return select(props, this.props.children);
+    },
 
-  componentWillReceiveProps: function(nextProps) {
-    // After the initial mount, we control selected-ness manually so don't pass
-    // the context value down
-    this.setState({initialValue: null});
-  },
-
-  componentDidUpdate: function(prevProps) {
-    var value = LinkedValueUtils.getValue(this.props);
-    if (value != null) {
+    componentWillMount: function() {
       this._pendingUpdate = false;
-      updateOptions(this, value);
-    } else if (!prevProps.multiple !== !this.props.multiple) {
-      // For simplicity, reapply `defaultValue` if `multiple` is toggled.
-      if (this.props.defaultValue != null) {
-        updateOptions(this, this.props.defaultValue);
-      } else {
-        // Revert the select back to its default unselected state.
-        updateOptions(this, this.props.multiple ? [] : '');
+    },
+
+    componentWillReceiveProps: function(nextProps) {
+      // After the initial mount, we control selected-ness manually so don't pass
+      // the context value down
+      this.setState({initialValue: null});
+    },
+
+    componentDidUpdate: function(prevProps) {
+      var value = LinkedValueUtils.getValue(this.props);
+      if (value != null) {
+        this._pendingUpdate = false;
+        updateOptions(this, value);
+      } else if (!prevProps.multiple !== !this.props.multiple) {
+        // For simplicity, reapply `defaultValue` if `multiple` is toggled.
+        if (this.props.defaultValue != null) {
+          updateOptions(this, this.props.defaultValue);
+        } else {
+          // Revert the select back to its default unselected state.
+          updateOptions(this, this.props.multiple ? [] : '');
+        }
       }
-    }
-  },
+    },
 
-  _handleChange: function(event) {
-    var returnValue;
-    var onChange = LinkedValueUtils.getOnChange(this.props);
-    if (onChange) {
-      returnValue = onChange.call(this, event);
+    _handleChange: function(event) {
+      var returnValue;
+      var onChange = LinkedValueUtils.getOnChange(this.props);
+      if (onChange) {
+        returnValue = onChange.call(this, event);
+      }
+
+      this._pendingUpdate = true;
+      ReactUpdates.asap(updateOptionsIfPendingUpdateAndMounted, this);
+      return returnValue;
     }
 
-    this._pendingUpdate = true;
-    ReactUpdates.asap(updateOptionsIfPendingUpdateAndMounted, this);
-    return returnValue;
   }
-
-});
+);
 
 module.exports = ReactDOMSelect;

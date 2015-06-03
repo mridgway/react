@@ -11,10 +11,11 @@
 
 'use strict';
 
+var assign = require('Object.assign');
 var EventConstants = require('EventConstants');
 var LocalEventTrapMixin = require('LocalEventTrapMixin');
 var ReactBrowserComponentMixin = require('ReactBrowserComponentMixin');
-var ReactClass = require('ReactClass');
+var ReactClassMixin = require('ReactClassMixin');
 var ReactElement = require('ReactElement');
 
 var iframe = ReactElement.createFactory('iframe');
@@ -25,19 +26,27 @@ var iframe = ReactElement.createFactory('iframe');
  * do to accomplish this, but the most reliable is to make <iframe> a composite
  * component and use `componentDidMount` to attach the event handlers.
  */
-var ReactDOMIframe = ReactClass.createClass({
-  displayName: 'ReactDOMIframe',
-  tagName: 'IFRAME',
+function ReactDOMIframe(props, context) {
+  this.props = props;
+  this.context = context;
+}
+ReactDOMIframe.displayName = 'ReactDOMIframe';
 
-  mixins: [ReactBrowserComponentMixin, LocalEventTrapMixin],
+assign(
+  ReactDOMIframe.prototype,
+  LocalEventTrapMixin,
+  ReactBrowserComponentMixin,
+  ReactClassMixin,
+  {
+    tagName: 'IFRAME',
+    render: function() {
+      return iframe(this.props);
+    },
 
-  render: function() {
-    return iframe(this.props);
-  },
-
-  componentDidMount: function() {
-    this.trapBubbledEvent(EventConstants.topLevelTypes.topLoad, 'load');
+    componentDidMount: function() {
+      this.trapBubbledEvent(EventConstants.topLevelTypes.topLoad, 'load');
+    }
   }
-});
+);
 
 module.exports = ReactDOMIframe;

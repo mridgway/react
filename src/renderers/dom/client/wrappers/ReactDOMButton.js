@@ -11,9 +11,10 @@
 
 'use strict';
 
+var assign = require('Object.assign');
 var AutoFocusMixin = require('AutoFocusMixin');
 var ReactBrowserComponentMixin = require('ReactBrowserComponentMixin');
-var ReactClass = require('ReactClass');
+var ReactClassMixin = require('ReactClassMixin');
 var ReactElement = require('ReactElement');
 
 var keyMirror = require('keyMirror');
@@ -37,26 +38,33 @@ var mouseListenerNames = keyMirror({
  * Implements a <button> native component that does not receive mouse events
  * when `disabled` is set.
  */
-var ReactDOMButton = ReactClass.createClass({
-  displayName: 'ReactDOMButton',
-  tagName: 'BUTTON',
+function ReactDOMButton(props, context) {
+  this.props = props;
+  this.context = context;
+}
+ReactDOMButton.displayName = 'ReactDOMButton';
 
-  mixins: [AutoFocusMixin, ReactBrowserComponentMixin],
+assign(
+  ReactDOMButton.prototype,
+  AutoFocusMixin,
+  ReactBrowserComponentMixin,
+  ReactClassMixin,
+  {
+    tagName: 'BUTTON',
+    render: function () {
+      var props = {};
 
-  render: function() {
-    var props = {};
-
-    // Copy the props; except the mouse listeners if we're disabled
-    for (var key in this.props) {
-      if (this.props.hasOwnProperty(key) &&
+      // Copy the props; except the mouse listeners if we're disabled
+      for (var key in this.props) {
+        if (this.props.hasOwnProperty(key) &&
           (!this.props.disabled || !mouseListenerNames[key])) {
-        props[key] = this.props[key];
+          props[key] = this.props[key];
+        }
       }
+
+      return button(props, this.props.children);
     }
-
-    return button(props, this.props.children);
   }
-
-});
+);
 
 module.exports = ReactDOMButton;

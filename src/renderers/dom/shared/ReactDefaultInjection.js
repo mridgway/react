@@ -11,6 +11,7 @@
 
 'use strict';
 
+var assign = require('Object.assign');
 var BeforeInputEventPlugin = require('BeforeInputEventPlugin');
 var ChangeEventPlugin = require('ChangeEventPlugin');
 var ClientReactRootIndex = require('ClientReactRootIndex');
@@ -19,7 +20,7 @@ var EnterLeaveEventPlugin = require('EnterLeaveEventPlugin');
 var ExecutionEnvironment = require('ExecutionEnvironment');
 var HTMLDOMPropertyConfig = require('HTMLDOMPropertyConfig');
 var ReactBrowserComponentMixin = require('ReactBrowserComponentMixin');
-var ReactClass = require('ReactClass');
+var ReactClassMixin = require('ReactClassMixin');
 var ReactComponentBrowserEnvironment =
   require('ReactComponentBrowserEnvironment');
 var ReactDefaultBatchingStrategy = require('ReactDefaultBatchingStrategy');
@@ -49,20 +50,35 @@ var SVGDOMPropertyConfig = require('SVGDOMPropertyConfig');
 var createFullPageComponent = require('createFullPageComponent');
 
 function autoGenerateWrapperClass(type) {
-  return ReactClass.createClass({
-    tagName: type.toUpperCase(),
-    render: function() {
-      // Copy owner down for debugging info
-      var internalInstance = ReactInstanceMap.get(this);
-      return new ReactElement(
-        type,
-        null,  // key
-        null,  // ref
-        internalInstance._currentElement._owner,  // owner
-        this.props
-      );
+  var tagName = type.toUpperCase();
+  function Component(props, context) {
+    this.props = props;
+    this.context = context;
+  }
+
+  Component.displayName = tagName;
+
+  assign(
+    Component.prototype,
+    ReactBrowserComponentMixin,
+    ReactClassMixin,
+    {
+      tagName: tagName,
+      render: function() {
+        // Copy owner down for debugging info
+        var internalInstance = ReactInstanceMap.get(this);
+        return new ReactElement(
+          type,
+          null,  // key
+          null,  // ref
+          internalInstance._currentElement._owner,  // owner
+          this.props
+        );
+      }
     }
-  });
+  );
+
+  return Component;
 }
 
 var alreadyInjected = false;

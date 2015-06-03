@@ -11,10 +11,11 @@
 
 'use strict';
 
+var assign = require('Object.assign');
 var EventConstants = require('EventConstants');
 var LocalEventTrapMixin = require('LocalEventTrapMixin');
 var ReactBrowserComponentMixin = require('ReactBrowserComponentMixin');
-var ReactClass = require('ReactClass');
+var ReactClassMixin = require('ReactClassMixin');
 var ReactElement = require('ReactElement');
 
 var form = ReactElement.createFactory('form');
@@ -25,23 +26,31 @@ var form = ReactElement.createFactory('form');
  * do to accomplish this, but the most reliable is to make <form> a
  * composite component and use `componentDidMount` to attach the event handlers.
  */
-var ReactDOMForm = ReactClass.createClass({
-  displayName: 'ReactDOMForm',
-  tagName: 'FORM',
+function ReactDOMForm(props, context) {
+  this.props = props;
+  this.context = context;
+}
+ReactDOMForm.displayName = 'ReactDOMForm';
 
-  mixins: [ReactBrowserComponentMixin, LocalEventTrapMixin],
+assign(
+  ReactDOMForm.prototype,
+  LocalEventTrapMixin,
+  ReactBrowserComponentMixin,
+  ReactClassMixin,
+  {
+    tagName: 'FORM',
+    render: function() {
+      // TODO: Instead of using `ReactDOM` directly, we should use JSX. However,
+      // `jshint` fails to parse JSX so in order for linting to work in the open
+      // source repo, we need to just use `ReactDOM.form`.
+      return form(this.props);
+    },
 
-  render: function() {
-    // TODO: Instead of using `ReactDOM` directly, we should use JSX. However,
-    // `jshint` fails to parse JSX so in order for linting to work in the open
-    // source repo, we need to just use `ReactDOM.form`.
-    return form(this.props);
-  },
-
-  componentDidMount: function() {
-    this.trapBubbledEvent(EventConstants.topLevelTypes.topReset, 'reset');
-    this.trapBubbledEvent(EventConstants.topLevelTypes.topSubmit, 'submit');
+    componentDidMount: function() {
+      this.trapBubbledEvent(EventConstants.topLevelTypes.topReset, 'reset');
+      this.trapBubbledEvent(EventConstants.topLevelTypes.topSubmit, 'submit');
+    }
   }
-});
+);
 
 module.exports = ReactDOMForm;
